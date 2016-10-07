@@ -18,9 +18,15 @@
     "commands": [
       {
         "command": "extension.makeMrFromMaster",
-        "title": "Gitlab: MR from master"
+        "title": "Gitlab: Merge Request from master"
       }
     ],
+    "keybindings": [{
+        "command": "extension.makeMrFromMaster",
+        "key": "ctrl+k ctrl+m",
+        "mac": "cmd+k cmd+m",
+        "when": "editorTextFocus"
+    }],
     "configuration": {
       "title": "Gitlab MR",
       "properties": {
