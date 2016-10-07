@@ -3,7 +3,7 @@
   "displayName": "Gitlab MR",
   "description": "Open MRs in Gitlab from VS Code",
   "version": "0.0.1",
-  "publisher": "jasonnutter",
+  "publisher": "jasonn-porch",
   "engines": {
     "vscode": "^1.5.0"
   },
@@ -59,5 +59,9 @@
     "nodegit": "^0.16.0",
     "opn": "^4.0.2",
     "simple-git": "^1.53.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.porch.com/jasonn/vscode-gitlab-mr"
   }
 }
