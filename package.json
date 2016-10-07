@@ -1,0 +1,57 @@
+{
+  "name": "gitlab-mr",
+  "displayName": "Gitlab MR",
+  "description": "Open MRs in Gitlab from VS Code",
+  "version": "0.0.1",
+  "publisher": "jasonnutter",
+  "engines": {
+    "vscode": "^1.5.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:extension.makeMrFromMaster"
+  ],
+  "main": "./extension",
+  "contributes": {
+    "commands": [
+      {
+        "command": "extension.makeMrFromMaster",
+        "title": "Gitlab: MR from master"
+      }
+    ],
+    "configuration": {
+      "title": "Gitlab MR",
+      "properties": {
+        "gitlab.url": {
+          "type": "string",
+          "default": "https://gitlab.com",
+          "description": "URL to your Gitlab instance."
+        },
+        "gitlab.token": {
+          "type": "string",
+          "default": null,
+          "description": "Gitlab Access Token"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "typescript": "^2.0.3",
+    "vscode": "^1.0.0",
+    "mocha": "^2.3.3",
+    "eslint": "^3.6.0",
+    "@types/node": "^6.0.40",
+    "@types/mocha": "^2.2.32"
+  },
+  "dependencies": {
+    "gitlab": "^1.7.1",
+    "nodegit": "^0.16.0",
+    "opn": "^4.0.2",
+    "simple-git": "^1.53.0"
+  }
+}
