@@ -21,6 +21,8 @@ function activate(context) {
             vscode.window.showInputBox({
                 prompt: 'Commit Messaage:'
             }).then(commit_message => {
+                vscode.window.setStatusBarMessage(`Gitlab: Building MR to master from ${branch}...`);
+
                 git.checkout(['-b', branch])
                     .add('./*')
                     .commit(commit_message)
@@ -30,7 +32,17 @@ function activate(context) {
                         const repo_id = repo_url.split(":")[1].split(".git")[0];
 
                         gitlabApi.projects.merge_requests.add(repo_id, branch, 'master', null, commit_message, data => {
-                            open(data.web_url);
+                            const successMessage = `Gitlab: MR !${data.iid} created.`;
+
+                            vscode.window.setStatusBarMessage(successMessage);
+                            vscode.window.showInformationMessage(successMessage, 'Open MR').then(selected => {
+                                switch (selected) {
+                                    case 'Open MR': {
+                                        open(data.web_url);
+                                        break;
+                                    }
+                                }
+                            });
                         });
                     });
             });
