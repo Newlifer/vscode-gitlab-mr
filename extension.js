@@ -14,31 +14,25 @@ function activate(context) {
 
         // Set git context
         const git = simpleGit(vscode.workspace.rootPath);
-        let branch;
 
         vscode.window.showInputBox({
             prompt: 'Branch Name:'
-        }).then(input => {
-            branch = input;
-            return vscode.window.showInputBox({
+        }).then(branch => {
+            vscode.window.showInputBox({
                 prompt: 'Commit Messaage:'
-            });
-        }).then(commit_message => {
-            git.checkout(['-b', branch], () => {
-                git.add('./*', () => {
-                    git.commit(commit_message, () => {
-                        git.push(['-u', 'origin', branch], () => {
-                            git.getRemotes(true, (err, data) => {
-                                const repo_url = data[0].refs.push;
-                                const repo_id = repo_url.split(":")[1].split(".git")[0];
+            }).then(commit_message => {
+                git.checkout(['-b', branch])
+                    .add('./*')
+                    .commit(commit_message)
+                    .push(['-u', 'origin', branch])
+                    .getRemotes(true, (err, data) => {
+                        const repo_url = data[0].refs.push;
+                        const repo_id = repo_url.split(":")[1].split(".git")[0];
 
-                                gitlabApi.projects.merge_requests.add(repo_id, branch, 'master', null, commit_message, data => {
-                                    open(data.web_url);
-                                });
-                            });
+                        gitlabApi.projects.merge_requests.add(repo_id, branch, 'master', null, commit_message, data => {
+                            open(data.web_url);
                         });
                     });
-                });
             });
         });
     });
