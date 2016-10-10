@@ -21,12 +21,14 @@
         "title": "Gitlab: Merge Request from master"
       }
     ],
-    "keybindings": [{
+    "keybindings": [
+      {
         "command": "extension.makeMrFromMaster",
         "key": "ctrl+k ctrl+m",
         "mac": "cmd+k cmd+m",
         "when": "editorTextFocus"
-    }],
+      }
+    ],
     "configuration": {
       "title": "Gitlab MR",
       "properties": {
@@ -55,8 +57,8 @@
     "@types/mocha": "^2.2.32"
   },
   "dependencies": {
+    "bluebird": "^3.4.6",
     "gitlab": "^1.7.1",
-    "nodegit": "^0.16.0",
     "opn": "^4.0.2",
     "simple-git": "^1.53.0"
   },
