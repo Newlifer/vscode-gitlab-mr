@@ -1,7 +1,7 @@
 {
   "name": "gitlab-mr",
   "displayName": "Gitlab MR",
-  "description": "Open MRs in Gitlab from VS Code",
+  "description": "Manage MRs in Gitlab from VS Code",
   "version": "0.0.1",
   "publisher": "jasonn-porch",
   "engines": {
@@ -11,19 +11,19 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:extension.makeMrFromMaster"
+    "onCommand:extension.mrFromMaster"
   ],
   "main": "./extension",
   "contributes": {
     "commands": [
       {
-        "command": "extension.makeMrFromMaster",
-        "title": "Gitlab: Merge Request from master"
+        "command": "extension.mrFromMaster",
+        "title": "Gitlab MR: Merge Request from master"
       }
     ],
     "keybindings": [
       {
-        "command": "extension.makeMrFromMaster",
+        "command": "extension.mrFromMaster",
         "key": "ctrl+k ctrl+m",
         "mac": "cmd+k cmd+m",
         "when": "editorTextFocus"
@@ -32,15 +32,25 @@
     "configuration": {
       "title": "Gitlab MR",
       "properties": {
-        "gitlab.url": {
+        "gitlab-mr.gitlabUrl": {
           "type": "string",
           "default": "https://gitlab.com",
           "description": "URL to your Gitlab instance."
         },
-        "gitlab.token": {
+        "gitlab-mr.accessToken": {
           "type": "string",
           "default": null,
-          "description": "Gitlab Access Token"
+          "description": "Gitlab Access Token."
+        },
+        "gitlab-mr.targetBranch": {
+          "type": "string",
+          "default": "master",
+          "description": "Target branch for MRs."
+        },
+        "gitlab-mr.targetRemote": {
+          "type": "string",
+          "default": "origin",
+          "description": "Git remote to push to."
         }
       }
     }
