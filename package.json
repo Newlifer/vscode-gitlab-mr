@@ -2,7 +2,7 @@
   "name": "gitlab-mr",
   "displayName": "Gitlab MR",
   "description": "Manage MRs in Gitlab from VS Code",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "jasonn-porch",
   "engines": {
     "vscode": "^1.5.0"
@@ -35,7 +35,7 @@
         "gitlab-mr.gitlabUrl": {
           "type": "string",
           "default": "https://gitlab.com",
-          "description": "URL to your Gitlab instance (don't include trailing slash)."
+          "description": "URL to your Gitlab instance."
         },
         "gitlab-mr.accessToken": {
           "type": "string",

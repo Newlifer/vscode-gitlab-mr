@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const open = require('opn');
 const gitlab = require('gitlab')
 const simpleGit = require('simple-git');
+const url = require('url');
 
 const STATUS_TIMEOUT = 10000;
 
@@ -13,8 +14,16 @@ exports.activate = context => {
         const preferences = vscode.workspace.getConfiguration('gitlab-mr');
         const targetBranch = preferences.get('targetBranch', 'master');
         const targetRemote = preferences.get('targetRemote', 'origin');
+
+        // Parse gitlab url
+        const gitlabUrl = url.parse(preferences.get('gitlabUrl', 'https://gitlab.com'));
+        const gitlabBaseDomain = url.format({
+            protocol: gitlabUrl.protocol,
+            host: gitlabUrl.host
+        });
+
         const gitlabConfig = {
-            url: preferences.get('gitlabUrl', 'https://gitlab.com'),
+            url: gitlabBaseDomain,
             token: preferences.get('accessToken')
         };
 
@@ -82,9 +91,7 @@ exports.activate = context => {
                                     return vscode.window.showErrorMessage(message('No remotes configured.'));
                                 }
 
-                                // Parse Gitlab repo id from remotes
-                                // remotes[0].name
-
+                                // Parse remote and Gitlab repo id
                                 const remote = remotes.find(remote => remote.name === targetRemote);
 
                                 if (!remote) {
@@ -105,6 +112,30 @@ exports.activate = context => {
 
                                     // Open MR via Gitlab API
                                     gitlabApi.projects.merge_requests.add(repo_id, branch, targetBranch, null, commit_message, mr => {
+                                        // node-gitlab doesn't seem to bubble the actual error up
+                                        if (!mr.iid) {
+                                            const gitlabNewMrUrl = url.format({
+                                                protocol: gitlabUrl.protocol,
+                                                host: gitlabUrl.host,
+                                                pathname: `${repo_id}/merge_requests/new`,
+                                                query: {
+                                                    'merge_request[source_branch]': branch,
+                                                    'merge_request[target_branch]': targetBranch
+                                                }
+                                            });
+
+                                            const errorMessage = message('Unable to create MR.');
+
+                                            vscode.window.setStatusBarMessage(errorMessage, STATUS_TIMEOUT);
+                                            return vscode.window.showErrorMessage(errorMessage, 'Create on Gitlab').then(selected => {
+                                                switch (selected) {
+                                                    case 'Create on Gitlab':
+                                                        open(gitlabNewMrUrl);
+                                                        break;
+                                                }
+                                            })
+                                        }
+
                                         const successMessage = message(`MR !${mr.iid} created.`);
 
                                         vscode.window.setStatusBarMessage(successMessage, STATUS_TIMEOUT);

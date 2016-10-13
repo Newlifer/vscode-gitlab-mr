@@ -35,6 +35,10 @@ At this point, the following will happen:
 
 ## Release Notes
 
+### 0.1.1
+
+* Initial error hanlding for creating the MR via the Gitlab API.
+
 ### 0.1.0
 
 * Breaking: Changed preferences id from `gitlab` to `gitlab-mr`, and renamed existing preferences.
@@ -50,5 +54,5 @@ Initial release. Proof of concept, no error handling.
 
 ### Open Source
 
-Repo: [https://gitlab.com/jasonnutter/vscode-gitlab-mr](https://gitlab.com/jasonnutter/vscode-gitlab-mr)
-Issues: [https://gitlab.com/jasonnutter/vscode-gitlab-mr/issues](https://gitlab.com/jasonnutter/vscode-gitlab-mr/issues)
+* Repo: [https://gitlab.com/jasonnutter/vscode-gitlab-mr](https://gitlab.com/jasonnutter/vscode-gitlab-mr)
+* Issues: [https://gitlab.com/jasonnutter/vscode-gitlab-mr/issues](https://gitlab.com/jasonnutter/vscode-gitlab-mr/issues)
