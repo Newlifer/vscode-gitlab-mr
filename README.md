@@ -6,39 +6,41 @@ Visual Studio Marketplace: [https://marketplace.visualstudio.com/items?itemName=
 
 ## Supported Workflows
 
-### Merge Request from master
+### Merge Request from master (uncommitted changes)
 
 This workflow is for creating an MR from uncommitted changes in your `master` branch.
 
 1. Switch to `master` and make changes you want to open an MR for.
-2. Open the command palette and select "Gitlab: MR from master".
+2. Open the command palette and select "Gitlab MR: MR from master".
 3. First, input the name of the branch you want created for this MR.
 4. Next, provide the commit message for the changes.
 
 At this point, the following will happen:
 1. The new branch will be created and checked out.
-2. All changes files will be committed with the provide commit message.
+2. All changes files will be committed with the provided commit message.
 3. The branch will be pushed to your Gitlab server.
-4. An MR will be created to `master` for that branch.
+4. An MR will be created to the branch specified as `gitlab-mr.targetBranch` (defaults to `master`) from the new branch.
 5. A message will be shown in VS Code with a link to the MR.
 
 ## Extension Settings
 
-* `gitlab-mr.gitlabUrl`: url for the Gitlab server.
+* `gitlab-mr.gitlabUrl`: Url for the Gitlab server (defaults to `https://gitlab.com`).
 * `gitlab-mr.accessToken`: Access token to use to connect to Gitlab API. Create one by going to Profile Settings -> Access Tokens.
-* `gitlab-mr.targetBranch`: Default target branch for MRs.
-* `gitlab-mr.targetRemote`: Default target remote for MRs.
+* `gitlab-mr.targetBranch`: Default target branch for MRs (defaults to `master`).
+* `gitlab-mr.targetRemote`: Default target remote for MRs (defaults to `origin`).
 
 ## Known Issues
+
+* `https`: Haven't determined workflow for pushing to `https` remotes if you are not already authenticated.
 
 ## Release Notes
 
 ### 0.1.0
 
-* Breaking: Changed preferences id from `gitlab` to `gitlab-mr`.
+* Breaking: Changed preferences id from `gitlab` to `gitlab-mr`, and renamed existing preferences.
 * Added preference to change default branch name from `master`.
 * Added preference to change default remote repository.
-* Initial error handling for required preferences, commit message, and branch.
+* Initial error handling for required preferences, user inputs, and git operations.
 * Updated README with detailed explanation of first workflow.
 * Migrating to public Gitlab.
 

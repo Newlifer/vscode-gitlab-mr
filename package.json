@@ -2,7 +2,7 @@
   "name": "gitlab-mr",
   "displayName": "Gitlab MR",
   "description": "Manage MRs in Gitlab from VS Code",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "jasonn-porch",
   "engines": {
     "vscode": "^1.5.0"
@@ -35,7 +35,7 @@
         "gitlab-mr.gitlabUrl": {
           "type": "string",
           "default": "https://gitlab.com",
-          "description": "URL to your Gitlab instance."
+          "description": "URL to your Gitlab instance (don't include trailing slash)."
         },
         "gitlab-mr.accessToken": {
           "type": "string",
@@ -67,7 +67,6 @@
     "@types/mocha": "^2.2.32"
   },
   "dependencies": {
-    "bluebird": "^3.4.6",
     "gitlab": "^1.7.1",
     "opn": "^4.0.2",
     "simple-git": "^1.53.0"
