@@ -31,7 +31,7 @@ At this point, the following will happen:
 
 ## Known Issues
 
-* `https`: Haven't determined workflow for pushing to `https` remotes if you are not already authenticated.
+[View on Gitlab](https://gitlab.com/jasonnutter/vscode-gitlab-mr/issues?scope=all&state=opened&utf8=%E2%9C%93&label_name%5B%5D=Bug)
 
 ## Release Notes
 
