@@ -110,29 +110,35 @@ module.exports = {
                         return vscode.window.showErrorMessage(message('Commit message must be provided.'));
                     }
 
-                    vscode.window.setStatusBarMessage(message(`Building MR to master from ${branch}...`), STATUS_TIMEOUT);
+                    vscode.window.setStatusBarMessage(message(`Building MR to master from ${branch}...`));
+
+                    const gitStatusError =  message('Unable to create MR.');
 
                     // Create branch
                     git.checkout(['-b', branch], checkoutError => {
                         if (checkoutError) {
+                            vscode.window.setStatusBarMessage(gitStatusError, STATUS_TIMEOUT);
                             return vscode.window.showErrorMessage(message(checkoutError));
                         }
 
                         // Stage files
                         git.add('./*', addErr => {
                             if (addErr) {
+                                vscode.window.setStatusBarMessage(gitStatusError, STATUS_TIMEOUT);
                                 return vscode.window.showErrorMessage(message(addErr));
                             }
 
                             // Commit files
                             git.commit(commit_message, commitErr => {
                                 if (commitErr) {
+                                    vscode.window.setStatusBarMessage(gitStatusError, STATUS_TIMEOUT);
                                     return vscode.window.showErrorMessage(message(commitErr));
                                 }
 
                                 // Push to Gitlab
                                 git.push(['-u', targetRemote, branch], pushErr => {
                                     if (pushErr) {
+                                        vscode.window.setStatusBarMessage(gitStatusError, STATUS_TIMEOUT);
                                         return vscode.window.showErrorMessage(message(pushErr));
                                     }
 
