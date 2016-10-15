@@ -32,15 +32,15 @@
     "configuration": {
       "title": "Gitlab MR",
       "properties": {
-        "gitlab-mr.gitlabUrl": {
-          "type": "string",
-          "default": "https://gitlab.com",
-          "description": "URL to your Gitlab instance."
+        "gitlab-mr.accessTokens": {
+          "type": "object",
+          "default": null,
+          "description": "Key/value pairs of Gitlab Server URLs and Gitlab Access Tokens."
         },
         "gitlab-mr.accessToken": {
           "type": "string",
           "default": null,
-          "description": "Gitlab Access Token."
+          "description": "Gitlab Access Token for https://gitlab.com. Use gitlab-mr.accessTokens for CE/EE servers."
         },
         "gitlab-mr.targetBranch": {
           "type": "string",

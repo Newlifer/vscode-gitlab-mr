@@ -24,8 +24,8 @@ At this point, the following will happen:
 
 ## Extension Settings
 
-* `gitlab-mr.gitlabUrl`: Url for the Gitlab server (defaults to `https://gitlab.com`).
-* `gitlab-mr.accessToken`: Access token to use to connect to Gitlab API. Create one by going to Profile Settings -> Access Tokens.
+* `gitlab-mr.accessToken`: Access token to use to connect to the Gitlab.com API. Create one by going to Profile Settings -> Access Tokens.
+* `gitlab-mr.accessTokens`: Access token to use to connect to Gitlab CE/EE APIs. Create one by going to Profile Settings -> Access Tokens.
 * `gitlab-mr.targetBranch`: Default target branch for MRs (defaults to `master`).
 * `gitlab-mr.targetRemote`: Default target remote for MRs (defaults to `origin`).
 
@@ -34,6 +34,17 @@ At this point, the following will happen:
 [View on Gitlab](https://gitlab.com/jasonnutter/vscode-gitlab-mr/issues?scope=all&state=opened&utf8=%E2%9C%93&label_name%5B%5D=Bug)
 
 ## Release Notes
+
+### 0.2.0
+
+* Breaking: `gitlab-mr.gitlabUrl` has been removed, and `gitlab-mr.accessToken` is now for Gitlab.com access tokens.
+* Added `gitlab-mr.accessTokens` to specify access tokens for Gitlab CE/EE servers. Example:
+
+```json
+"gitlab-mr.accessTokens": {
+    "https://gitlab.domain.com": "ACCESS_TOKEN"
+}
+```
 
 ### 0.1.1
 
