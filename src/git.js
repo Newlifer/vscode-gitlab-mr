@@ -10,7 +10,8 @@ module.exports = gitContext => {
                 return deferred.reject(err);
             }
 
-            const onMaster = status.current === targetBranch;
+            const currentBranch = status.current;
+            const onMaster = currentBranch === targetBranch;
             const isConflicted = status.conflicted.length > 0;
             const cleanBranch = status.created.length === 0 &&
                                 status.deleted.length === 0 &&
@@ -23,6 +24,7 @@ module.exports = gitContext => {
             }
 
             deferred.resolve({
+                currentBranch,
                 onMaster,
                 cleanBranch
             });
@@ -31,8 +33,26 @@ module.exports = gitContext => {
         return deferred.promise;
     };
 
+    const lastCommitMessage = () => {
+        const deferred = Q.defer();
+
+        gitContext.log((err, log) => {
+            if (err) {
+                return deferred.reject(err);
+            }
+
+            const message = log.latest ? log.latest.message : '';
+
+            // Commit messages are suffixed with message starting with '(HEAD -> )'
+            deferred.resolve(message.split('(HEAD')[0].trim());
+        });
+
+        return deferred.promise;
+    };
+
     const parseRemotes = targetRemote => {
         const deferred = Q.defer();
+
         gitContext.getRemotes(true, (err, remotes) => {
             // Remote error checking
             if (err) {
@@ -128,6 +148,7 @@ module.exports = gitContext => {
 
     return {
         checkStatus,
+        lastCommitMessage,
         parseRemotes,
         checkoutBranch,
         addFiles,

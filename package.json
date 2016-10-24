@@ -2,7 +2,7 @@
   "name": "gitlab-mr",
   "displayName": "Gitlab MR",
   "description": "Manage MRs in Gitlab from VS Code",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "publisher": "jasonn-porch",
   "engines": {
     "vscode": "^1.5.0"
@@ -11,19 +11,19 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:extension.mrFromMaster"
+    "onCommand:extension.openMR"
   ],
   "main": "./extension",
   "contributes": {
     "commands": [
       {
-        "command": "extension.mrFromMaster",
-        "title": "Gitlab MR: Merge Request from master"
+        "command": "extension.openMR",
+        "title": "Gitlab MR: Open MR"
       }
     ],
     "keybindings": [
       {
-        "command": "extension.mrFromMaster",
+        "command": "extension.openMR",
         "key": "ctrl+k ctrl+m",
         "mac": "cmd+k cmd+m",
         "when": "editorTextFocus"
