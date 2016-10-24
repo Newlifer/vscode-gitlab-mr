@@ -5,6 +5,6 @@ exports.activate = context => {
     const mrFromMaster = vscode.commands.registerCommand('extension.mrFromMaster', workflows.mrFromMaster);
 
     context.subscriptions.push(mrFromMaster);
-}
+};
 
 exports.deactivate = () => {};

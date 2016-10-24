@@ -7,17 +7,26 @@
     },
     "parserOptions": {
         "ecmaFeatures": {
-            "jsx": true
+            "jsx": false
         },
         "sourceType": "module"
     },
     "rules": {
-        "no-const-assign": "warn",
-        "no-this-before-super": "warn",
-        "no-undef": "warn",
-        "no-unreachable": "warn",
-        "no-unused-vars": "warn",
-        "constructor-super": "warn",
-        "valid-typeof": "warn"
+        "quotes": [2, "single"],
+        "no-undef": "error",
+        "no-unreachable": "error",
+        "no-unused-vars": "error",
+        "arrow-parens": [2, "as-needed"],
+        "no-param-reassign": "error",
+        "prefer-arrow-callback": "error",
+        "no-duplicate-imports": "error",
+        "semi": "error",
+        "no-extra-semi": "error",
+        "comma-dangle": "error",
+        "prefer-template": "error",
+        "eol-last": "error",
+        "indent": ["error", 4, { "SwitchCase": 1 }],
+        "prefer-const": "error",
+        "no-debugger": "error"
     }
 }

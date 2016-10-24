@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const open = require('opn');
 const url = require('url');
 const gitApi = require('simple-git');
-const gitlabApi = require('gitlab')
+const gitlabApi = require('gitlab');
 
 const gitActions = require('./git');
 const gitlabActions = require('./gitlab');
@@ -155,4 +155,4 @@ module.exports = {
             showErrorMessage(err.message);
         });
     }
-}
+};

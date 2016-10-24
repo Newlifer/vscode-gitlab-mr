@@ -56,7 +56,8 @@
     }
   },
   "scripts": {
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "typescript": "^2.0.3",
