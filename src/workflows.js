@@ -1,12 +1,20 @@
 const vscode = require('vscode');
 const open = require('opn');
-const gitlab = require('gitlab')
-const simpleGit = require('simple-git');
 const url = require('url');
+const gitApi = require('simple-git');
+const gitlabApi = require('gitlab')
 
+const gitActions = require('./git');
+const gitlabActions = require('./gitlab');
+
+const message = msg => `Gitlab MR: ${msg}`;
+const ERROR_STATUS = message('Unable to create MR.');
 const STATUS_TIMEOUT = 10000;
 
-const message = message => `Gitlab MR: ${message}`;
+const showErrorMessage = msg => {
+    vscode.window.setStatusBarMessage(ERROR_STATUS, STATUS_TIMEOUT);
+    vscode.window.showErrorMessage(message(msg));
+};
 
 module.exports = {
     mrFromMaster: () => {
@@ -18,177 +26,133 @@ module.exports = {
 
         // Access tokens
         const gitlabComAccessToken = preferences.get('accessToken');
-        const otherAccessTokens = preferences.get('accessTokens');
+        const gitlabCeAccessTokens = preferences.get('accessTokens');
 
         // Set git context
-        const git = simpleGit(vscode.workspace.rootPath);
+        const gitContext = gitApi(vscode.workspace.rootPath);
+        const git = gitActions(gitContext);
 
-        // Read remotes to determine where MR will go
-        git.getRemotes(true, (remotesErr, remotes) => {
-            // Remote error checking
-            if (remotesErr) {
-                return vscode.window.showErrorMessage(message(remotesErr));
-            }
+        // Check repo status
+        git.checkStatus(targetBranch)
+        .then(() => {
+            // Read remotes to determine where MR will go
+            git.parseRemotes(targetRemote, gitlabComAccessToken, gitlabCeAccessTokens)
+            .then(result => {
+                const repoId = result.repoId;
+                const repoHost = result.repoHost;
 
-            if (!remotes || remotes.length < 1) {
-                return vscode.window.showErrorMessage(message('No remotes configured.'));
-            }
+                const httpsRepoHost = `https://${repoHost}`;
+                const isGitlabCom = repoHost === 'gitlab.com';
+                const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[httpsRepoHost];
 
-            // Determine which Gitlab server this repo uses
-            const remote = remotes.find(remote => remote.name === targetRemote);
-            if (!remote) {
-                return vscode.window.showErrorMessage(message(`Target remote ${targetRemote} does not exist.`));
-            }
+                // Token not set for repo host
+                if (!accessToken) {
+                    const tokenUrl = `${httpsRepoHost}/profile/personal_access_tokens`;
+                    const errorMsg = httpsRepoHost === 'https://gitlab.com' ?
+                        'gitlab-mr.accessToken preference not set.' :
+                        `gitlab-mr.accessTokens['${httpsRepoHost}'] preference not set.`;
 
-            // Parse repo host and tokens
-            const repoUrl = remote.refs.push;
-            const https = repoUrl.indexOf('https://') > -1;
+                    const generateTokenLabel = 'Generate Access Token';
 
-            const repoHost = https ?
-                 url.parse(repoUrl).host :
-                 repoUrl.split(':')[0].split('@')[1];
-
-            const httpsRepoHost = `https://${repoHost}`;
-
-            const repoId = https ?
-                repoUrl.split(`${httpsRepoHost}/`)[1].split('.git')[0] :
-                repoUrl.split(':')[1].split('.git')[0];
-
-            const isGitlabCom = repoHost === "gitlab.com";
-            const accessToken = isGitlabCom ? gitlabComAccessToken : otherAccessTokens[httpsRepoHost];
-
-            // Token not set for repo host
-            if (!accessToken) {
-                const tokenUrl = url.format({
-                    protocol: 'https',
-                    host: repoHost,
-                    pathname: '/profile/personal_access_tokens'
-                });
-
-                const errorMsg = isGitlabCom ?
-                    'gitlab-mr.accessToken preference not set.' :
-                    `gitlab-mr.accessTokens['${httpsRepoHost}'] preference not set.`;
-
-                const generateTokenLabel = 'Generate Access Token';
-
-                return vscode.window.showErrorMessage(message(errorMsg), generateTokenLabel).then(selected => {
-                    switch (selected) {
-                        case generateTokenLabel:
-                            open(tokenUrl);
-                            break;
-                    }
-                });
-            }
-
-            // Setup gitlab api
-            const gitlabApi = gitlab({
-                url: url.format({
-                    protocol: 'https',
-                    host: repoHost
-                }),
-                token: accessToken
-            });
-
-            // Prompt user for branch and commit message
-            vscode.window.showInputBox({
-                prompt: 'Branch Name:'
-            }).then(branch => {
-                // Validate branch name
-                if (!branch) {
-                    return vscode.window.showErrorMessage(message('Branch name must be provided.'));
+                    return vscode.window.showErrorMessage(message(errorMsg), generateTokenLabel).then(selected => {
+                        switch (selected) {
+                            case generateTokenLabel:
+                                open(tokenUrl);
+                                break;
+                        }
+                    });
                 }
 
-                if (branch.indexOf(' ') > -1) {
-                    return vscode.window.showErrorMessage(message('Branch name must not contain spaces.'));
-                }
+                // Build Gitlab context
+                const gitlabContext = gitlabApi({
+                    url: url.format({
+                        host: repoHost,
+                        protocol: 'https'
+                    }),
+                    token: accessToken
+                });
 
+                const gitlab = gitlabActions(gitlabContext);
+
+                // Prompt user for branch and commit message
                 vscode.window.showInputBox({
-                    prompt: 'Commit Messaage:'
-                }).then(commit_message => {
-                    // Validate commit message
-                    if (!commit_message) {
-                        return vscode.window.showErrorMessage(message('Commit message must be provided.'));
+                    prompt: 'Branch Name:'
+                })
+                .then(branch => {
+                    // Validate branch name
+                    if (!branch) {
+                        return showErrorMessage('Branch name must be provided.');
                     }
 
-                    vscode.window.setStatusBarMessage(message(`Building MR to master from ${branch}...`));
+                    if (branch.indexOf(' ') > -1) {
+                        return showErrorMessage('Branch name must not contain spaces.');
+                    }
 
-                    const gitStatusError =  message('Unable to create MR.');
-
-                    // Create branch
-                    git.checkout(['-b', branch], checkoutError => {
-                        if (checkoutError) {
-                            vscode.window.setStatusBarMessage(gitStatusError, STATUS_TIMEOUT);
-                            return vscode.window.showErrorMessage(message(checkoutError));
+                    vscode.window.showInputBox({
+                        prompt: 'Commit Messaage:'
+                    })
+                    .then(commitMessage => {
+                        // Validate commit message
+                        if (!commitMessage) {
+                            return showErrorMessage('Commit message must be provided.');
                         }
 
-                        // Stage files
-                        git.add('./*', addErr => {
-                            if (addErr) {
-                                vscode.window.setStatusBarMessage(gitStatusError, STATUS_TIMEOUT);
-                                return vscode.window.showErrorMessage(message(addErr));
-                            }
+                        vscode.window.setStatusBarMessage(message(`Building MR to master from ${branch}...`));
 
-                            // Commit files
-                            git.commit(commit_message, commitErr => {
-                                if (commitErr) {
-                                    vscode.window.setStatusBarMessage(gitStatusError, STATUS_TIMEOUT);
-                                    return vscode.window.showErrorMessage(message(commitErr));
-                                }
+                        // Create commit, push branch, open MR
+                        git.checkoutBranch(branch)
+                        .then(() => git.addFiles('./*'))
+                        .then(() => git.commitFiles(commitMessage))
+                        .then(() => git.pushBranch(targetRemote, branch))
+                        .then(() => {
+                            gitlab.openMr(repoId, repoHost, branch, targetBranch, commitMessage)
+                            .then(mr => {
+                                // Success message and prompt
+                                const successMessage = message(`MR !${mr.iid} created.`);
+                                const successButton = 'Open MR';
 
-                                // Push to Gitlab
-                                git.push(['-u', targetRemote, branch], pushErr => {
-                                    if (pushErr) {
-                                        vscode.window.setStatusBarMessage(gitStatusError, STATUS_TIMEOUT);
-                                        return vscode.window.showErrorMessage(message(pushErr));
-                                    }
-
-                                    // Open MR via Gitlab API
-                                    gitlabApi.projects.merge_requests.add(repoId, branch, targetBranch, null, commit_message, mr => {
-                                        // node-gitlab doesn't seem to bubble the actual error up
-                                        if (!mr.iid) {
-                                            const gitlabNewMrUrl = url.format({
-                                                protocol: 'https',
-                                                host: repoHost,
-                                                pathname: `${repoId}/merge_requests/new`,
-                                                query: {
-                                                    'merge_request[source_branch]': branch,
-                                                    'merge_request[target_branch]': targetBranch
-                                                }
-                                            });
-
-                                            const errorMessage = message('Unable to create MR.');
-                                            const createButton = 'Create on Gitlab';
-
-                                            vscode.window.setStatusBarMessage(errorMessage, STATUS_TIMEOUT);
-                                            return vscode.window.showErrorMessage(errorMessage, createButton).then(selected => {
-                                                switch (selected) {
-                                                    case createButton:
-                                                        open(gitlabNewMrUrl);
-                                                        break;
-                                                }
-                                            })
+                                vscode.window.setStatusBarMessage(successMessage, STATUS_TIMEOUT);
+                                vscode.window.showInformationMessage(successMessage, successButton).then(selected => {
+                                    switch (selected) {
+                                        case successButton: {
+                                            vscode.window.setStatusBarMessage('');
+                                            open(mr.web_url);
+                                            break;
                                         }
+                                    }
+                                });
+                            })
+                            .catch(() => {
+                                // Build url to create MR from web ui
+                                const gitlabNewMrUrl = url.format({
+                                    protocol: 'https',
+                                    host: repoHost,
+                                    pathname: `${repoId}/merge_requests/new`,
+                                    query: {
+                                        'merge_request[source_branch]': branch,
+                                        'merge_request[target_branch]': targetBranch
+                                    }
+                                });
 
-                                        // Success message and prompt
-                                        const successMessage = message(`MR !${mr.iid} created.`);
-                                        const successButton = 'Open MR';
+                                const createButton = 'Create on Gitlab';
 
-                                        vscode.window.setStatusBarMessage(successMessage, STATUS_TIMEOUT);
-                                        vscode.window.showInformationMessage(successMessage, successButton).then(selected => {
-                                            switch (selected) {
-                                                case successButton: {
-                                                    open(mr.web_url);
-                                                    break;
-                                                }
-                                            }
-                                        });
-                                    });
+                                vscode.window.setStatusBarMessage(ERROR_STATUS, STATUS_TIMEOUT);
+                                vscode.window.showErrorMessage(ERROR_STATUS, createButton).then(selected => {
+                                    switch (selected) {
+                                        case createButton:
+                                            vscode.window.setStatusBarMessage('');
+                                            open(gitlabNewMrUrl);
+                                            break;
+                                    }
                                 });
                             });
                         });
                     });
                 });
             });
+        })
+        .catch(err => {
+            showErrorMessage(err.message);
         });
     }
 }
