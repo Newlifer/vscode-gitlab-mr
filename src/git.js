@@ -90,10 +90,24 @@ module.exports = gitContext => {
         return deferred.promise;
     };
 
-    const checkoutBranch = branchName => {
+    const createBranch = branchName => {
         const deferred = Q.defer();
 
         gitContext.checkout(['-b', branchName], err => {
+            if (err) {
+                return deferred.reject(new Error(err));
+            }
+
+            deferred.resolve();
+        });
+
+        return deferred.promise;
+    };
+
+    const checkoutBranch = args => {
+        const deferred = Q.defer();
+
+        gitContext.checkout(args, err => {
             if (err) {
                 return deferred.reject(new Error(err));
             }
@@ -146,11 +160,42 @@ module.exports = gitContext => {
         return deferred.promise;
     };
 
+    const fetchRemote = (targetRemote, branchName) => {
+        const deferred = Q.defer();
+
+        gitContext.fetch(targetRemote, branchName, err => {
+            if (err) {
+                return deferred.reject(new Error(err));
+            }
+
+            return deferred.resolve();
+        });
+
+        return deferred.promise;
+    };
+
+    const listBranches = () => {
+        const deferred = Q.defer();
+
+        gitContext.branch((err, branches) => {
+            if (err) {
+                return deferred.reject(new Error(err));
+            }
+
+            return deferred.resolve(branches);
+        });
+
+        return deferred.promise;
+    };
+
     return {
         checkStatus,
         lastCommitMessage,
         parseRemotes,
+        createBranch,
         checkoutBranch,
+        listBranches,
+        fetchRemote,
         addFiles,
         commitFiles,
         pushBranch

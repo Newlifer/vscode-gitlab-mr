@@ -15,7 +15,22 @@ module.exports = gitlabContext => {
         return deferred.promise;
     };
 
+    const listMrs = (repoId, params) => {
+        const deferred = Q.defer();
+
+        gitlabContext.projects.merge_requests.list(repoId, params, mrs => {
+            if (!mrs) {
+                return deferred.reject(new Error('No MRs found.'));
+            }
+
+            deferred.resolve(mrs);
+        });
+
+        return deferred.promise;
+    };
+
     return {
-        openMr
+        openMr,
+        listMrs
     };
 };

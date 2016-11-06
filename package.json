@@ -11,7 +11,9 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:extension.openMR"
+    "onCommand:extension.openMR",
+    "onCommand:extension.viewMR",
+    "onCommand:extension.checkoutMR"
   ],
   "main": "./extension",
   "contributes": {
@@ -19,6 +21,14 @@
       {
         "command": "extension.openMR",
         "title": "Gitlab MR: Open MR"
+      },
+      {
+        "command": "extension.viewMR",
+        "title": "Gitlab MR: View MR"
+      },
+      {
+        "command": "extension.checkoutMR",
+        "title": "Gitlab MR: Checkout MR"
       }
     ],
     "keybindings": [
@@ -26,6 +36,18 @@
         "command": "extension.openMR",
         "key": "ctrl+k ctrl+m",
         "mac": "cmd+k cmd+m",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.viewMR",
+        "key": "ctrl+k ctrl+v",
+        "mac": "cmd+k cmd+v",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "extension.checkoutMR",
+        "key": "ctrl+k ctrl+b",
+        "mac": "cmd+k cmd+b",
         "when": "editorTextFocus"
       }
     ],

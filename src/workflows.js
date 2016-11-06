@@ -3,6 +3,7 @@ const open = require('opn');
 const url = require('url');
 const gitApi = require('simple-git');
 const gitlabApi = require('gitlab');
+const Q = require('q');
 
 const gitActions = require('./git');
 const gitlabActions = require('./gitlab');
@@ -12,180 +13,327 @@ const ERROR_STATUS = message('Unable to create MR.');
 const STATUS_TIMEOUT = 10000;
 
 const showErrorMessage = msg => {
+    vscode.window.setStatusBarMessage('');
     vscode.window.setStatusBarMessage(ERROR_STATUS, STATUS_TIMEOUT);
     vscode.window.showErrorMessage(message(msg));
 };
 
-module.exports = {
-    openMR: () => {
-        const preferences = vscode.workspace.getConfiguration('gitlab-mr');
+const showAccessTokenErrorMessage = httpsRepoHost => {
+    const tokenUrl = `${httpsRepoHost}/profile/personal_access_tokens`;
+    const errorMsg = httpsRepoHost === 'https://gitlab.com' ?
+        'gitlab-mr.accessToken preference not set.' :
+        `gitlab-mr.accessTokens['${httpsRepoHost}'] preference not set.`;
 
-        // Target branch and remote
-        const targetBranch = preferences.get('targetBranch', 'master');
-        const targetRemote = preferences.get('targetRemote', 'origin');
+    const generateTokenLabel = 'Generate Access Token';
 
-        // Access tokens
-        const gitlabComAccessToken = preferences.get('accessToken');
-        const gitlabCeAccessTokens = preferences.get('accessTokens') || {};
+    return vscode.window.showErrorMessage(message(errorMsg), generateTokenLabel).then(selected => {
+        switch (selected) {
+            case generateTokenLabel:
+                open(tokenUrl);
+                break;
+        }
+    });
+};
 
-        // Set git context
-        const gitContext = gitApi(vscode.workspace.rootPath);
-        const git = gitActions(gitContext);
+const openMR = () => {
+    const preferences = vscode.workspace.getConfiguration('gitlab-mr');
 
-        // Check repo status
-        git.checkStatus(targetBranch)
-        .then(status => {
-            const currentBranch = status.currentBranch;
-            const onMaster = status.onMaster;
-            const cleanBranch = status.cleanBranch;
+    // Target branch and remote
+    const targetBranch = preferences.get('targetBranch', 'master');
+    const targetRemote = preferences.get('targetRemote', 'origin');
 
-            git.lastCommitMessage()
-            .then(lastCommitMessage => {
-                // Read remotes to determine where MR will go
-                git.parseRemotes(targetRemote)
-                .then(result => {
-                    const repoId = result.repoId;
-                    const repoHost = result.repoHost;
+    // Access tokens
+    const gitlabComAccessToken = preferences.get('accessToken');
+    const gitlabCeAccessTokens = preferences.get('accessTokens') || {};
 
-                    const httpsRepoHost = `https://${repoHost}`;
-                    const isGitlabCom = repoHost === 'gitlab.com';
-                    const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[httpsRepoHost];
+    // Set git context
+    const gitContext = gitApi(vscode.workspace.rootPath);
+    const git = gitActions(gitContext);
 
-                    // Token not set for repo host
-                    if (!accessToken) {
-                        const tokenUrl = `${httpsRepoHost}/profile/personal_access_tokens`;
-                        const errorMsg = httpsRepoHost === 'https://gitlab.com' ?
-                            'gitlab-mr.accessToken preference not set.' :
-                            `gitlab-mr.accessTokens['${httpsRepoHost}'] preference not set.`;
+    // Check repo status
+    git.checkStatus(targetBranch)
+    .then(status => {
+        const currentBranch = status.currentBranch;
+        const onMaster = status.onMaster;
+        const cleanBranch = status.cleanBranch;
 
-                        const generateTokenLabel = 'Generate Access Token';
+        return git.lastCommitMessage()
+        .then(lastCommitMessage => {
+            // Read remotes to determine where MR will go
+            return git.parseRemotes(targetRemote)
+            .then(result => {
+                const repoId = result.repoId;
+                const repoHost = result.repoHost;
 
-                        return vscode.window.showErrorMessage(message(errorMsg), generateTokenLabel).then(selected => {
-                            switch (selected) {
-                                case generateTokenLabel:
-                                    open(tokenUrl);
-                                    break;
-                            }
-                        });
+                const httpsRepoHost = `https://${repoHost}`;
+                const isGitlabCom = repoHost === 'gitlab.com';
+                const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[httpsRepoHost];
+
+                // Token not set for repo host
+                if (!accessToken) {
+                    return showAccessTokenErrorMessage(httpsRepoHost);
+                }
+
+                // Build Gitlab context
+                const gitlabContext = gitlabApi({
+                    url: url.format({
+                        host: repoHost,
+                        protocol: 'https'
+                    }),
+                    token: accessToken
+                });
+
+                const gitlab = gitlabActions(gitlabContext);
+
+                // Prompt user for branch and commit message
+                return vscode.window.showInputBox({
+                    prompt: 'Branch Name:',
+                    value: onMaster ? '' : currentBranch
+                })
+                .then(branch => {
+                    // Validate branch name
+                    if (!branch) {
+                        return showErrorMessage('Branch name must be provided.');
                     }
 
-                    // Build Gitlab context
-                    const gitlabContext = gitlabApi({
-                        url: url.format({
-                            host: repoHost,
-                            protocol: 'https'
-                        }),
-                        token: accessToken
-                    });
+                    if (branch.indexOf(' ') > -1) {
+                        return showErrorMessage('Branch name must not contain spaces.');
+                    }
 
-                    const gitlab = gitlabActions(gitlabContext);
+                    if (branch === targetBranch) {
+                        return showErrorMessage(`Branch name cannot be the default branch name (${targetBranch}).`);
+                    }
 
-                    // Prompt user for branch and commit message
-                    vscode.window.showInputBox({
-                        prompt: 'Branch Name:',
-                        value: onMaster ? '' : currentBranch
+                    return vscode.window.showInputBox({
+                        prompt: 'Commit Message:',
+                        value: cleanBranch ? lastCommitMessage : ''
                     })
-                    .then(branch => {
-                        // Validate branch name
-                        if (!branch) {
-                            return showErrorMessage('Branch name must be provided.');
+                    .then(commitMessage => {
+                        // Validate commit message
+                        if (!commitMessage) {
+                            return showErrorMessage('Commit message must be provided.');
                         }
 
-                        if (branch.indexOf(' ') > -1) {
-                            return showErrorMessage('Branch name must not contain spaces.');
-                        }
+                        vscode.window.setStatusBarMessage(message(`Building MR to ${targetBranch} from ${branch}...`));
 
-                        if (branch === targetBranch) {
-                            return showErrorMessage(`Branch name cannot be the default branch name (${targetBranch}).`);
-                        }
-
-                        vscode.window.showInputBox({
-                            prompt: 'Commit Message:',
-                            value: cleanBranch ? lastCommitMessage : ''
-                        })
-                        .then(commitMessage => {
-                            // Validate commit message
-                            if (!commitMessage) {
-                                return showErrorMessage('Commit message must be provided.');
-                            }
-
-                            vscode.window.setStatusBarMessage(message(`Building MR to ${targetBranch} from ${branch}...`));
-
-                            var gitPromises;
-                            if (onMaster || (!onMaster && currentBranch !== branch)) {
-                                if (cleanBranch) {
-                                    // On master, clean: create and push branch
-                                    gitPromises = git.checkoutBranch(branch)
-                                                    .then(() => git.pushBranch(targetRemote, branch));
-                                } else {
-                                    // On master, not clean: create branch, commit, push branch
-                                    gitPromises = git.checkoutBranch(branch)
-                                                    .then(() => git.addFiles('./*'))
-                                                    .then(() => git.commitFiles(commitMessage))
-                                                    .then(() => git.pushBranch(targetRemote, branch));
-                                }
+                        var gitPromises;
+                        if (onMaster || (!onMaster && currentBranch !== branch)) {
+                            if (cleanBranch) {
+                                // On master, clean: create and push branch
+                                gitPromises = git.createBranch(branch)
+                                                .then(() => git.pushBranch(targetRemote, branch));
                             } else {
-                                if (cleanBranch) {
-                                    // Not on master, clean: push branch
-                                    gitPromises = git.pushBranch(targetRemote, branch);
-                                } else {
-                                    // Not on master, not clean: Commit, push branch
-                                    gitPromises = git.addFiles('./*')
-                                                    .then(() => git.commitFiles(commitMessage))
-                                                    .then(() => git.pushBranch(targetRemote, branch));
-                                }
+                                // On master, not clean: create branch, commit, push branch
+                                gitPromises = git.createBranch(branch)
+                                                .then(() => git.addFiles('./*'))
+                                                .then(() => git.commitFiles(commitMessage))
+                                                .then(() => git.pushBranch(targetRemote, branch));
                             }
+                        } else {
+                            if (cleanBranch) {
+                                // Not on master, clean: push branch
+                                gitPromises = git.pushBranch(targetRemote, branch);
+                            } else {
+                                // Not on master, not clean: Commit, push branch
+                                gitPromises = git.addFiles('./*')
+                                                .then(() => git.commitFiles(commitMessage))
+                                                .then(() => git.pushBranch(targetRemote, branch));
+                            }
+                        }
 
-                            gitPromises.then(() => {
-                                gitlab.openMr(repoId, repoHost, branch, targetBranch, commitMessage)
-                                .then(mr => {
-                                    // Success message and prompt
-                                    const successMessage = message(`MR !${mr.iid} created.`);
-                                    const successButton = 'Open MR';
+                        return gitPromises.then(() => {
+                            gitlab.openMR(repoId, repoHost, branch, targetBranch, commitMessage)
+                            .then(mr => {
+                                // Success message and prompt
+                                const successMessage = message(`MR !${mr.iid} created.`);
+                                const successButton = 'Open MR';
 
-                                    vscode.window.setStatusBarMessage(successMessage, STATUS_TIMEOUT);
-                                    vscode.window.showInformationMessage(successMessage, successButton).then(selected => {
-                                        switch (selected) {
-                                            case successButton: {
-                                                vscode.window.setStatusBarMessage('');
-                                                open(mr.web_url);
-                                                break;
-                                            }
+                                vscode.window.setStatusBarMessage(successMessage, STATUS_TIMEOUT);
+                                vscode.window.showInformationMessage(successMessage, successButton).then(selected => {
+                                    switch (selected) {
+                                        case successButton: {
+                                            vscode.window.setStatusBarMessage('');
+                                            open(mr.web_url);
+                                            break;
                                         }
-                                    });
-                                })
-                                .catch(() => {
-                                    // Build url to create MR from web ui
-                                    const gitlabNewMrUrl = url.format({
-                                        protocol: 'https',
-                                        host: repoHost,
-                                        pathname: `${repoId}/merge_requests/new`,
-                                        query: {
-                                            'merge_request[source_branch]': branch,
-                                            'merge_request[target_branch]': targetBranch
-                                        }
-                                    });
+                                    }
+                                });
+                            })
+                            .catch(() => {
+                                // Build url to create MR from web ui
+                                const gitlabNewMrUrl = url.format({
+                                    protocol: 'https',
+                                    host: repoHost,
+                                    pathname: `${repoId}/merge_requests/new`,
+                                    query: {
+                                        'merge_request[source_branch]': branch,
+                                        'merge_request[target_branch]': targetBranch
+                                    }
+                                });
 
-                                    const createButton = 'Create on Gitlab';
+                                const createButton = 'Create on Gitlab';
 
-                                    vscode.window.setStatusBarMessage(ERROR_STATUS, STATUS_TIMEOUT);
-                                    vscode.window.showErrorMessage(ERROR_STATUS, createButton).then(selected => {
-                                        switch (selected) {
-                                            case createButton:
-                                                vscode.window.setStatusBarMessage('');
-                                                open(gitlabNewMrUrl);
-                                                break;
-                                        }
-                                    });
+                                vscode.window.setStatusBarMessage(ERROR_STATUS, STATUS_TIMEOUT);
+                                vscode.window.showErrorMessage(ERROR_STATUS, createButton).then(selected => {
+                                    switch (selected) {
+                                        case createButton:
+                                            vscode.window.setStatusBarMessage('');
+                                            open(gitlabNewMrUrl);
+                                            break;
+                                    }
                                 });
                             });
                         });
                     });
                 });
             });
-        })
-        .catch(err => {
-            showErrorMessage(err.message);
         });
-    }
+    })
+    .catch(err => {
+        showErrorMessage(err.message);
+    });
+};
+
+const listMRs = () => {
+    const deferred = Q.defer();
+
+    const preferences = vscode.workspace.getConfiguration('gitlab-mr');
+
+    // Target branch and remote
+    const targetBranch = preferences.get('targetBranch', 'master');
+    const targetRemote = preferences.get('targetRemote', 'origin');
+
+    // Access tokens
+    const gitlabComAccessToken = preferences.get('accessToken');
+    const gitlabCeAccessTokens = preferences.get('accessTokens') || {};
+
+    // Set git context
+    const gitContext = gitApi(vscode.workspace.rootPath);
+    const git = gitActions(gitContext);
+
+    git.parseRemotes(targetRemote)
+    .then(result => {
+        const repoId = result.repoId;
+        const repoHost = result.repoHost;
+
+        const httpsRepoHost = `https://${repoHost}`;
+        const isGitlabCom = repoHost === 'gitlab.com';
+        const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[httpsRepoHost];
+
+        // Token not set for repo host
+        if (!accessToken) {
+            return showAccessTokenErrorMessage(httpsRepoHost);
+        }
+
+        // Build Gitlab context
+        const gitlabContext = gitlabApi({
+            url: url.format({
+                host: repoHost,
+                protocol: 'https'
+            }),
+            token: accessToken
+        });
+
+        const gitlab = gitlabActions(gitlabContext);
+
+        return gitlab.listMrs(repoId, { state: 'opened' })
+        .then(mrs => {
+            const mrList = mrs.map(mr => {
+                const label = `MR !${mr.iid}: ${mr.title}`;
+                const detail = mr.description;
+                let description = `${mr.source_branch}`;
+
+                if (mr.target_branch !== targetBranch) {
+                    description += ` > ${mr.target_branch}`;
+                }
+
+                return {
+                    mr,
+                    label,
+                    detail,
+                    description
+                };
+            });
+
+            return vscode.window.showQuickPick(mrList, {
+                matchOnDescription: true,
+                placeHolder: 'Select MR'
+            })
+            .then(selected => {
+                if (selected) {
+                    deferred.resolve(selected.mr);
+                }
+            });
+        });
+    })
+    .catch(err => {
+        deferred.reject(err);
+    });
+
+    return deferred.promise;
+};
+
+const viewMR = () => {
+    listMRs()
+    .then(mr => {
+        if (!mr) {
+            return showErrorMessage('MR not selected.');
+        }
+
+        open(mr.web_url);
+    })
+    .catch(err => {
+        showErrorMessage(err.message);
+    });
+};
+
+const checkoutMR = () => {
+    listMRs()
+    .then(mr => {
+        if (!mr) {
+            return showErrorMessage('MR not selected.');
+        }
+
+        const branchName = mr.source_branch;
+
+        // Preferences
+        const preferences = vscode.workspace.getConfiguration('gitlab-mr');
+        const targetRemote = preferences.get('targetRemote', 'origin');
+
+        // Git context
+        const gitContext = gitApi(vscode.workspace.rootPath);
+        const git = gitActions(gitContext);
+
+        vscode.window.setStatusBarMessage(message(`Checking out MR !${mr.iid}...`));
+
+        return git.listBranches()
+        .then(branches => {
+            const targetBranch = branches.branches[branchName];
+
+            if (targetBranch) {
+                // Switch to existing branch
+                return git.checkoutBranch([branchName]);
+            }
+
+            // Fetch and switch to remote branch
+            return git.fetchRemote(targetRemote, branchName)
+            .then(() => {
+                return git.checkoutBranch(['-b', branchName, `${targetRemote}/${branchName}`]);
+            });
+        })
+        .then(() => {
+            vscode.window.setStatusBarMessage('');
+            vscode.window.setStatusBarMessage(message(`Switched to MR !${mr.iid}.`), STATUS_TIMEOUT);
+        });
+    })
+    .catch(err => {
+        showErrorMessage(err.message);
+    });
+};
+
+module.exports = {
+    listMRs,
+    viewMR,
+    checkoutMR,
+    openMR
 };
