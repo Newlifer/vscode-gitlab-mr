@@ -20,7 +20,7 @@
     "commands": [
       {
         "command": "extension.openMR",
-        "title": "Gitlab MR: Open MR"
+        "title": "Gitlab MR: Create MR"
       },
       {
         "command": "extension.viewMR",
