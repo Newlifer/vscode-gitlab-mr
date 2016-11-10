@@ -49,6 +49,7 @@ View an existing MR in your browser.
 * `gitlab-mr.accessTokens`: Access token to use to connect to Gitlab CE/EE APIs. Create one by going to Profile Settings -> Access Tokens.
 * `gitlab-mr.targetBranch`: Default target branch for MRs (defaults to `master`).
 * `gitlab-mr.targetRemote`: Default target remote for MRs (defaults to `origin`).
+* `gitlab-mr.autoOpenMr`: Automatically open a new MR in your browser.
 
 ## Known Issues
 
@@ -61,6 +62,7 @@ View an existing MR in your browser.
 * Added: New workflow to checkout an existing MR on your computer.
 * Added: New workflow to open an existing MR in your browser.
 * Updated: Changed the command palette label of "Open MR" to "Create MR" to reduce confusion with "View MR".
+* Added: `gitlab-mr.autoOpenMr` to automatically open a new MR in your browser.
 
 ### 1.0.0
 
