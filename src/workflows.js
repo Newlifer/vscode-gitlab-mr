@@ -46,6 +46,9 @@ const openMR = () => {
     const gitlabComAccessToken = preferences.get('accessToken');
     const gitlabCeAccessTokens = preferences.get('accessTokens') || {};
 
+    // Auto-open MR
+    const autoOpenMr = preferences.get('autoOpenMr', false);
+
     // Set git context
     const gitContext = gitApi(vscode.workspace.rootPath);
     const git = gitActions(gitContext);
@@ -142,14 +145,20 @@ const openMR = () => {
                         }
 
                         return gitPromises.then(() => {
-                            gitlab.openMR(repoId, repoHost, branch, targetBranch, commitMessage)
+                            return gitlab.openMr(repoId, repoHost, branch, targetBranch, commitMessage)
                             .then(mr => {
                                 // Success message and prompt
                                 const successMessage = message(`MR !${mr.iid} created.`);
                                 const successButton = 'Open MR';
 
                                 vscode.window.setStatusBarMessage(successMessage, STATUS_TIMEOUT);
-                                vscode.window.showInformationMessage(successMessage, successButton).then(selected => {
+
+                                if (autoOpenMr) {
+                                    open(mr.web_url);
+                                    return vscode.window.showInformationMessage(successMessage);
+                                }
+
+                                return vscode.window.showInformationMessage(successMessage, successButton).then(selected => {
                                     switch (selected) {
                                         case successButton: {
                                             vscode.window.setStatusBarMessage('');

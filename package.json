@@ -73,6 +73,11 @@
           "type": "string",
           "default": "origin",
           "description": "Git remote to push to."
+        },
+        "gitlab-mr.autoOpenMr": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically open a new MR."
         }
       }
     }
