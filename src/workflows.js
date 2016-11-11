@@ -13,9 +13,8 @@ const ERROR_STATUS = message('Unable to create MR.');
 const STATUS_TIMEOUT = 10000;
 
 const showErrorMessage = msg => {
-    vscode.window.setStatusBarMessage('');
-    vscode.window.setStatusBarMessage(ERROR_STATUS, STATUS_TIMEOUT);
     vscode.window.showErrorMessage(message(msg));
+    vscode.window.setStatusBarMessage(ERROR_STATUS, STATUS_TIMEOUT);
 };
 
 const showAccessTokenErrorMessage = httpsRepoHost => {
@@ -117,7 +116,7 @@ const openMR = () => {
                             return showErrorMessage('Commit message must be provided.');
                         }
 
-                        vscode.window.setStatusBarMessage(message(`Building MR to ${targetBranch} from ${branch}...`));
+                        const buildStatus = vscode.window.setStatusBarMessage(message(`Building MR to ${targetBranch} from ${branch}...`));
 
                         var gitPromises;
                         if (onMaster || (!onMaster && currentBranch !== branch)) {
@@ -151,6 +150,7 @@ const openMR = () => {
                                 const successMessage = message(`MR !${mr.iid} created.`);
                                 const successButton = 'Open MR';
 
+                                buildStatus.dispose();
                                 vscode.window.setStatusBarMessage(successMessage, STATUS_TIMEOUT);
 
                                 if (autoOpenMr) {
@@ -161,7 +161,6 @@ const openMR = () => {
                                 return vscode.window.showInformationMessage(successMessage, successButton).then(selected => {
                                     switch (selected) {
                                         case successButton: {
-                                            vscode.window.setStatusBarMessage('');
                                             open(mr.web_url);
                                             break;
                                         }
@@ -169,6 +168,8 @@ const openMR = () => {
                                 });
                             })
                             .catch(() => {
+                                buildStatus.dispose();
+
                                 // Build url to create MR from web ui
                                 const gitlabNewMrUrl = url.format({
                                     protocol: 'https',
@@ -186,7 +187,6 @@ const openMR = () => {
                                 vscode.window.showErrorMessage(ERROR_STATUS, createButton).then(selected => {
                                     switch (selected) {
                                         case createButton:
-                                            vscode.window.setStatusBarMessage('');
                                             open(gitlabNewMrUrl);
                                             break;
                                     }
@@ -313,7 +313,7 @@ const checkoutMR = () => {
         const gitContext = gitApi(vscode.workspace.rootPath);
         const git = gitActions(gitContext);
 
-        vscode.window.setStatusBarMessage(message(`Checking out MR !${mr.iid}...`));
+        const checkoutStatus = vscode.window.setStatusBarMessage(message(`Checking out MR !${mr.iid}...`));
 
         return git.listBranches()
         .then(branches => {
@@ -331,8 +331,12 @@ const checkoutMR = () => {
             });
         })
         .then(() => {
-            vscode.window.setStatusBarMessage('');
+            checkoutStatus.dispose();
             vscode.window.setStatusBarMessage(message(`Switched to MR !${mr.iid}.`), STATUS_TIMEOUT);
+        })
+        .catch(err => {
+            checkoutStatus.dispose();
+            showErrorMessage(err.message);
         });
     })
     .catch(err => {
