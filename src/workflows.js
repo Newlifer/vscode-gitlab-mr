@@ -66,8 +66,9 @@ const openMR = () => {
             .then(result => {
                 const repoId = result.repoId;
                 const repoHost = result.repoHost;
+                const repoWebProtocol = result.repoWebProtocol;
 
-                const httpsRepoHost = `https://${repoHost}`;
+                const httpsRepoHost = `${repoWebProtocol}://${repoHost}`;
                 const isGitlabCom = repoHost === 'gitlab.com';
                 const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[httpsRepoHost];
 
@@ -80,7 +81,7 @@ const openMR = () => {
                 const gitlabContext = gitlabApi({
                     url: url.format({
                         host: repoHost,
-                        protocol: 'https'
+                        protocol: repoWebProtocol
                     }),
                     token: accessToken
                 });
@@ -172,7 +173,7 @@ const openMR = () => {
 
                                 // Build url to create MR from web ui
                                 const gitlabNewMrUrl = url.format({
-                                    protocol: 'https',
+                                    protocol: repoWebProtocol,
                                     host: repoHost,
                                     pathname: `${repoId}/merge_requests/new`,
                                     query: {
@@ -224,8 +225,9 @@ const listMRs = () => {
     .then(result => {
         const repoId = result.repoId;
         const repoHost = result.repoHost;
+        const repoWebProtocol = result.repoWebProtocol;
 
-        const httpsRepoHost = `https://${repoHost}`;
+        const httpsRepoHost = `${repoWebProtocol}://${repoHost}`;
         const isGitlabCom = repoHost === 'gitlab.com';
         const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[httpsRepoHost];
 
@@ -238,7 +240,7 @@ const listMRs = () => {
         const gitlabContext = gitlabApi({
             url: url.format({
                 host: repoHost,
-                protocol: 'https'
+                protocol: repoWebProtocol
             }),
             token: accessToken
         });

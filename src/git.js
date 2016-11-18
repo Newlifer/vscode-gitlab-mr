@@ -1,5 +1,5 @@
 const Q = require('q');
-const url = require('url');
+const gitUtils = require('./git-utils');
 
 module.exports = gitContext => {
     const checkStatus = targetBranch => {
@@ -71,20 +71,10 @@ module.exports = gitContext => {
 
             // Parse repo host and tokens
             const repoUrl = remote.refs.push;
-            const https = repoUrl.indexOf('https://') > -1;
 
-            const repoHost = https ?
-                 url.parse(repoUrl).host :
-                 repoUrl.split(':')[0].split('@')[1];
+            const parsedRemote = gitUtils.parseRepoUrl(repoUrl);
 
-            const repoId = https ?
-                repoUrl.split(`https://${repoHost}/`)[1].split('.git')[0] :
-                repoUrl.split(':')[1].split('.git')[0];
-
-            deferred.resolve({
-                repoId,
-                repoHost
-            });
+            deferred.resolve(parsedRemote);
         });
 
         return deferred.promise;
