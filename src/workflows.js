@@ -144,6 +144,12 @@ const openMR = () => {
                             }
                         }
 
+                        gitPromises.catch(err => {
+                            buildStatus.dispose();
+
+                            showErrorMessage(err.message);
+                        });
+
                         return gitPromises.then(() => {
                             return gitlab.openMr(repoId, repoHost, branch, targetBranch, commitMessage)
                             .then(mr => {
