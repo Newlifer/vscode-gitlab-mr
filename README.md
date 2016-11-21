@@ -51,6 +51,15 @@ View an existing MR in your browser.
 * `gitlab-mr.targetRemote`: Default target remote for MRs (defaults to `origin`).
 * `gitlab-mr.autoOpenMr`: Automatically open a new MR in your browser.
 
+### Access Tokens Example
+
+```json
+"gitlab-mr.accessToken": "ACCESS_TOKEN_FOR_GITLAB.COM",
+"gitlab-mr.accessTokens": {
+    "https://gitlab.domain.com": "ACCESS_TOKEN_FOR_GITLAB.DOMAIN.COM"
+}
+```
+
 ## Links
 
 * Visual Studio Marketplace: [https://marketplace.visualstudio.com/items?itemName=jasonn-porch.gitlab-mr](https://marketplace.visualstudio.com/items?itemName=jasonn-porch.gitlab-mr)

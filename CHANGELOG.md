@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 1.2.0
+
+* Added: Support for Gitlab remote urls that start with `ssh://` and `http`.
+* Fixed: Properly dipose of VS Code status bar message when creating a commit.
+
 ## 1.1.1
 
 * Fixed: Properly dispose of VS Code status bar messages.
