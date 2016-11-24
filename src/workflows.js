@@ -7,6 +7,7 @@ const Q = require('q');
 
 const gitActions = require('./git');
 const gitlabActions = require('./gitlab');
+const gitUtils = require('./git-utils');
 
 const message = msg => `Gitlab MR: ${msg}`;
 const ERROR_STATUS = message('Unable to create MR.');
@@ -17,11 +18,11 @@ const showErrorMessage = msg => {
     vscode.window.setStatusBarMessage(ERROR_STATUS, STATUS_TIMEOUT);
 };
 
-const showAccessTokenErrorMessage = httpsRepoHost => {
-    const tokenUrl = `${httpsRepoHost}/profile/personal_access_tokens`;
-    const errorMsg = httpsRepoHost === 'https://gitlab.com' ?
+const showAccessTokenErrorMessage = gitlabApiUrl => {
+    const tokenUrl = `${gitlabApiUrl}/profile/personal_access_tokens`;
+    const errorMsg = gitlabApiUrl === 'https://gitlab.com' ?
         'gitlab-mr.accessToken preference not set.' :
-        `gitlab-mr.accessTokens['${httpsRepoHost}'] preference not set.`;
+        `gitlab-mr.accessTokens["${gitlabApiUrl}"] preference not set.`;
 
     const generateTokenLabel = 'Generate Access Token';
 
@@ -66,23 +67,24 @@ const openMR = () => {
             .then(result => {
                 const repoId = result.repoId;
                 const repoHost = result.repoHost;
-                const repoWebProtocol = result.repoWebProtocol;
+                const gitlabHosts = gitUtils.parseGitlabHosts(gitlabCeAccessTokens);
+                const repoWebProtocol = gitUtils.parseRepoProtocol(repoHost, gitlabHosts);
 
-                const httpsRepoHost = `${repoWebProtocol}://${repoHost}`;
+                const gitlabApiUrl = url.format({
+                    host: repoHost,
+                    protocol: repoWebProtocol
+                });
                 const isGitlabCom = repoHost === 'gitlab.com';
-                const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[httpsRepoHost];
+                const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[gitlabApiUrl];
 
                 // Token not set for repo host
                 if (!accessToken) {
-                    return showAccessTokenErrorMessage(httpsRepoHost);
+                    return showAccessTokenErrorMessage(gitlabApiUrl);
                 }
 
                 // Build Gitlab context
                 const gitlabContext = gitlabApi({
-                    url: url.format({
-                        host: repoHost,
-                        protocol: repoWebProtocol
-                    }),
+                    url: gitlabApiUrl,
                     token: accessToken
                 });
 
@@ -231,23 +233,24 @@ const listMRs = () => {
     .then(result => {
         const repoId = result.repoId;
         const repoHost = result.repoHost;
-        const repoWebProtocol = result.repoWebProtocol;
+        const gitlabHosts = gitUtils.parseGitlabHosts(gitlabCeAccessTokens);
+        const repoWebProtocol = gitUtils.parseRepoProtocol(repoHost, gitlabHosts);
 
-        const httpsRepoHost = `${repoWebProtocol}://${repoHost}`;
+        const gitlabApiUrl = url.format({
+            host: repoHost,
+            protocol: repoWebProtocol
+        });
         const isGitlabCom = repoHost === 'gitlab.com';
-        const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[httpsRepoHost];
+        const accessToken = isGitlabCom ? gitlabComAccessToken : gitlabCeAccessTokens[gitlabApiUrl];
 
         // Token not set for repo host
         if (!accessToken) {
-            return showAccessTokenErrorMessage(httpsRepoHost);
+            return showAccessTokenErrorMessage(gitlabApiUrl);
         }
 
         // Build Gitlab context
         const gitlabContext = gitlabApi({
-            url: url.format({
-                host: repoHost,
-                protocol: repoWebProtocol
-            }),
+            url: gitlabApiUrl,
             token: accessToken
         });
 
