@@ -1,5 +1,7 @@
 # VS Code - Gitlab MR
 
+[![](http://vsmarketplacebadge.apphb.com/version/jasonn-porch.gitlab-mr.svg)](https://marketplace.visualstudio.com/items?itemName=jasonn-porch.gitlab-mr)
+
 VS Code extension for working with Gitlab Merge Requests, supporting both Gitlab.com and Gitlab EE/CE servers.
 
 ## Features
