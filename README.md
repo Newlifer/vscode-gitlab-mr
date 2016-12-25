@@ -68,3 +68,4 @@ View an existing MR in your browser.
 * Repo: [https://gitlab.com/jasonnutter/vscode-gitlab-mr](https://gitlab.com/jasonnutter/vscode-gitlab-mr)
 * Known Issues: [https://gitlab.com/jasonnutter/vscode-gitlab-mr/issues?scope=all&state=opened&utf8=%E2%9C%93&label_name%5B%5D=Bug](https://gitlab.com/jasonnutter/vscode-gitlab-mr/issues?scope=all&state=opened&utf8=%E2%9C%93&label_name%5B%5D=Bug)
 * Change Log: [https://gitlab.com/jasonnutter/vscode-gitlab-mr/blob/master/CHANGELOG.md](https://gitlab.com/jasonnutter/vscode-gitlab-mr/blob/master/CHANGELOG.md)
+* Github Plugin: [https://github.com/jasonnutter/vscode-github-pr](https://github.com/jasonnutter/vscode-github-pr)
